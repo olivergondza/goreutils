@@ -1,0 +1,49 @@
+#!/bin/awk -f
+
+BEGIN {
+  if (ARGC < 3) {
+    print "Usage: take <LENGTH> <START> [-- <ITEMS>...]"
+    exit 1
+  }
+
+ len = ARGV[1]
+ start = ARGV[2]
+
+  if (start !~ /^[0-9]+$/ || start < 0 || start % 1 != 0) {
+    print "Invalid START: " start
+    exit 1
+  }
+
+  if (len !~ /^[0-9]+$/ || len < 0 || len % 1 != 0) {
+    print "Invalid LENGTH: " len
+    exit 1
+  }
+
+  # Process arguments
+  if (ARGV[3] == "--") {
+    argLength = ARGC - 4
+    if (start + len > argLength) {
+      print "Not enough elements. Required " start + len ", have " argLength
+      exit 2
+    }
+    for (i = 4 + start; i < 4 + start + len; i++) {
+      print ARGV[i]
+    }
+    exit 0
+  }
+
+  # Erase args so stdin is read
+  ARGV[1] = "/dev/stdin"
+  for (i = 2; i < ARGC; i++) {
+    delete ARGV[i]
+  }
+}
+
+# Process input
+# TODO fail in case there is not enough records
+{
+  n = NR - 1
+  if (n >= start && n < start + len) {
+    print
+  }
+}
