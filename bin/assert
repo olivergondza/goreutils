@@ -1,0 +1,69 @@
+#!/bin/awk -f
+
+# Populate config argument with tool configuration
+function init_opts(config, argc, argv) {
+  for (i = 1; i < argc; i++) {
+    switch (argv[i]) {
+      case "--message":
+        read_opt_value(config, argv, ++i, CNF_MESSAGE, "--message")
+      break;
+      case "--exit-with":
+        read_opt_value(config, argv, ++i, CNF_EXIT, "--exit-with")
+      break;
+      case "--succeeds":
+        config[CNF_EXIT] = 0
+      break;
+      case "--stdout-matches":
+        read_opt_value(config, argv, ++i, CNF_STDOUT, "--stdout-matches")
+      break;
+      case "--no-stdout":
+        config[CNF_STDOUT] = ""
+      break;
+      case "--stderr-matches":
+        read_opt_value(config, argv, ++i, CNF_STDERR, "--stderr-matches")
+      break;
+      case "--no-stderr":
+        config[CNF_STDERR] = ""
+      break;
+      case "--that":
+        command = "set -x; exec"
+        for(ii = i+1; ii < argc; ii++) {
+          arg = argv[ii]
+          gsub(/[']/, "'\\''", arg)
+          command = command" '"arg"'"
+        }
+        config[CNF_COMMAND] = command
+        i = argc # Quit the loop
+      break
+      default:
+        print "Unknown option "argv[i]" given" > "/dev/stderr"
+      break;
+    }
+  }
+
+  # Print config
+  # for (key in config) {
+  #   print key": "config[key]
+  # }
+}
+
+function read_opt_value(config, argv, value_index, cnf_name, arg_name) {
+  if (length(argv) <= value_index) {
+    print "Option "arg_name" given with no value" > "/dev/stderr"
+    exit 1
+  }
+  config[cnf_name] = argv[value_index]
+}
+
+BEGIN {
+  CNF_MESSAGE="message"
+  CNF_STDOUT="stdout"
+  CNF_STDERR="stderr"
+  CNF_EXIT="exit"
+  CNF_COMMAND="command"
+
+  init_opts(config, ARGC, ARGV)
+
+  exit_code = system(config[CNF_COMMAND])
+  exit 0 # Prevent AWK to read arguments
+}
