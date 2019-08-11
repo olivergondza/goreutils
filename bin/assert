@@ -25,15 +25,16 @@ function init_opts(config, argc, argv) {
       case "--no-stderr":
         config[CNF_STDERR] = ""
       break;
-      case "--that":
-        command = "set -x; exec"
-        for(ii = i+1; ii < argc; ii++) {
-          arg = argv[ii]
+      case "--running":
+        read_opt_value(config, argv, ++i, CNF_COMMAND, "--running")
+        split(config[CNF_COMMAND], chunks, ",")
+        command = "exec"
+        for(ii = 1; ii <= length(chunks); ii++) {
+          arg = chunks[ii]
           gsub(/[']/, "'\\''", arg)
           command = command" '"arg"'"
         }
         config[CNF_COMMAND] = command
-        i = argc # Quit the loop
       break
       default:
         print "Unknown option "argv[i]" given" > "/dev/stderr"
@@ -45,17 +46,25 @@ function init_opts(config, argc, argv) {
   # for (key in config) {
   #   print key": "config[key]
   # }
+
+  if (!(CNF_COMMAND in config)) {
+    print "No operation specified. Use --running" > "/dev/stderr"
+    exit EXIT_USAGE
+  }
 }
 
 function read_opt_value(config, argv, value_index, cnf_name, arg_name) {
   if (length(argv) <= value_index) {
     print "Option "arg_name" given with no value" > "/dev/stderr"
-    exit 1
+    exit EXIT_USAGE
   }
   config[cnf_name] = argv[value_index]
 }
 
 BEGIN {
+  EXIT_USAGE = 1
+  EXIT_FAILURE = 2
+
   CNF_MESSAGE="message"
   CNF_STDOUT="stdout"
   CNF_STDERR="stderr"
@@ -65,5 +74,9 @@ BEGIN {
   init_opts(config, ARGC, ARGV)
 
   exit_code = system(config[CNF_COMMAND])
+  if (CNF_EXIT in config && exit_code != config[CNF_EXIT]) {
+    print "ASSERT: Exit code mismatch. Expected "config[CNF_EXIT]", given "exit_code
+    exit EXIT_FAILURE
+  }
   exit 0 # Prevent AWK to read arguments
 }
