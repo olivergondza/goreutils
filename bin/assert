@@ -1,5 +1,10 @@
 #!/bin/awk -f
 
+# TODO
+# - Exit code ranges
+# - Output verification by command
+# - Providing standard input
+
 # Populate config argument with tool configuration
 function init_opts(config, argc, argv) {
   for (i = 1; i < argc; i++) {
@@ -13,28 +18,26 @@ function init_opts(config, argc, argv) {
       case "--succeeds":
         config[CNF_EXIT] = 0
       break;
+      case "--succeeds-silently":
+        config[CNF_EXIT] = 0
+        config[CNF_STDOUT] = REGEX_EMPTY
+        config[CNF_STDERR] = REGEX_EMPTY
+      break;
       case "--stdout-matches":
         read_opt_value(config, argv, ++i, CNF_STDOUT, "--stdout-matches")
       break;
       case "--no-stdout":
-        config[CNF_STDOUT] = ""
+        config[CNF_STDOUT] = REGEX_EMPTY
       break;
       case "--stderr-matches":
         read_opt_value(config, argv, ++i, CNF_STDERR, "--stderr-matches")
       break;
       case "--no-stderr":
-        config[CNF_STDERR] = ""
+        config[CNF_STDERR] = REGEX_EMPTY
       break;
       case "--running":
         read_opt_value(config, argv, ++i, CNF_COMMAND, "--running")
-        split(config[CNF_COMMAND], chunks, ",")
-        command = "exec"
-        for(ii = 1; ii <= length(chunks); ii++) {
-          arg = chunks[ii]
-          gsub(/[']/, "'\\''", arg)
-          command = command" '"arg"'"
-        }
-        config[CNF_COMMAND] = command
+        prepare_exec(config[CNF_COMMAND], config_running_exec)
       break
       default:
         print "Unknown option "argv[i]" given" > "/dev/stderr"
@@ -61,7 +64,31 @@ function read_opt_value(config, argv, value_index, cnf_name, arg_name) {
   config[cnf_name] = argv[value_index]
 }
 
+# Turn the command specifier into a shell call to run and capture stuff
+function prepare_exec(command_specifier, exec_array) {
+  new_array(exec_array)
+  token = "assert-exec-"(1000000*rand())
+  exec_array["stdout"] = "/tmp/assert-exec-"token"-stdout"
+  exec_array["stderr"] = "/tmp/assert-exec-"token"-stderr"
+
+  split(command_specifier, chunks, ",")
+  command = "exec"
+  for(ii = 1; ii <= length(chunks); ii++) {
+    arg = chunks[ii]
+    gsub(/[']/, "'\\''", arg)
+    command = command" '"arg"'"
+  }
+  command = command" > '"exec_array["stdout"]"' 2> '"exec_array["stderr"]"'"
+  exec_array["command"] = command
+  # print command
+}
+
+function new_array(array) {
+  split("", array)
+}
+
 BEGIN {
+  EXIT_SUCCESS = 0
   EXIT_USAGE = 1
   EXIT_FAILURE = 2
 
@@ -71,12 +98,45 @@ BEGIN {
   CNF_EXIT="exit"
   CNF_COMMAND="command"
 
+  REGEX_EMPTY="^$"
+
+  srand() # We use rand() down the path
+  RS="^$" # So we can read whole files easily
+
+  # Tool configuration provided
+  new_array(config)
+  # ExecArray for main execution task (--running)
+  new_array(config_running_exec)
+  # Map of problems detected
+  new_array(assertions)
+
   init_opts(config, ARGC, ARGV)
 
-  exit_code = system(config[CNF_COMMAND])
+  exit_code = system(config_running_exec["command"])
   if (CNF_EXIT in config && exit_code != config[CNF_EXIT]) {
-    print "ASSERT: Exit code mismatch. Expected "config[CNF_EXIT]", given "exit_code
-    exit EXIT_FAILURE
+    assertions["exit"] = ("ASSERT: Exit code mismatch. Expected "config[CNF_EXIT]", was "exit_code)
   }
-  exit 0 # Prevent AWK to read arguments
+
+  if (CNF_STDOUT in config) {
+    getline out < (config_running_exec["stdout"])
+    if (out !~ config[CNF_STDOUT]) {
+      assertions["stdout"] = ("ASSERT: Standard output mismatch. Expected text matching '"config[CNF_STDOUT]"', was:\n"out"ASSERT: ===")
+    }
+  }
+  system("rm '"config_running_exec["stdout"]"'")
+
+  if (CNF_STDERR in config) {
+    getline err < (config_running_exec["stderr"])
+    if (err !~ config[CNF_STDERR]) {
+      assertions["stderr"] = ("ASSERT: Standard error mismatch. Expected text matching '"config[CNF_STDERR]"', was:\n"err"ASSERT: ===")
+    }
+  }
+  system("rm '"config_running_exec["stderr"]"'")
+
+  for (key in assertions) {
+    print assertions[key] > "/dev/stderr"
+  }
+
+  # Exiting explicitly to prevent AWK to process arguments as input files
+  exit (length(assertions) == 0) ? EXIT_SUCCESS : EXIT_FAILURE
 }
