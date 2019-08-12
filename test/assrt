@@ -85,6 +85,7 @@ function prepare_exec(command_specifier, exec_array) {
   }
   command = command" > '"exec_array["stdout"]"' 2> '"exec_array["stderr"]"'"
   exec_array["command"] = command
+  # print command
 }
 
 function new_array(array) {
@@ -104,8 +105,8 @@ BEGIN {
 
   REGEX_EMPTY="^$"
 
-  # We use rand() down the path so initializing it now. Second resolution of systime()
-  # is not sufficient to prevent consecutive invocations of assert to clash on random paths generated
+  # We use rand() down the path initializing it now. Second resolution of systime()
+  # is not sufficient to prevent consecutive invocations of assert to clash
   srand(systime()*PROCINFO["pid"])
   RS="^$" # So we can read whole files easily
 
