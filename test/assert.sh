@@ -9,13 +9,23 @@ export PATH="$BIN:$BIN/../test:$PATH"
 # Args
 
 ## Invalid
-assrt --running assert,--message --exit-with 1 --no-stdout --stderr-matches '^Option --message given with no value\n$'
-assrt --running assert,--exit-with --exit-with 1 --no-stdout --stderr-matches '^Option --exit-with given with no value\n$'
-assrt --running assert,--stdout-matches --exit-with 1 --no-stdout --stderr-matches '^Option --stdout-matches given with no value\n$'
-assrt --running assert,--stderr-matches --exit-with 1 --no-stdout --stderr-matches '^Option --stderr-matches given with no value\n$'
-assrt --running assert,--running --exit-with 1 --no-stdout --stderr-matches '^Option --running given with no value\n$'
+assrt --running assert,--message \
+    --exit-with 1 --no-stdout --stderr-matches '^Option --message given with no value\n$'
 
-assrt --running assert --exit-with 1 --no-stdout --stderr-matches '^No operation specified. Use --running\n$'
+assrt --running assert,--exit-with \
+    --exit-with 1 --no-stdout --stderr-matches '^Option --exit-with given with no value\n$'
+
+assrt --running assert,--stdout-matches \
+    --exit-with 1 --no-stdout --stderr-matches '^Option --stdout-matches given with no value\n$'
+
+assrt --running assert,--stderr-matches \
+    --exit-with 1 --no-stdout --stderr-matches '^Option --stderr-matches given with no value\n$'
+
+assrt --running assert,--running \
+    --exit-with 1 --no-stdout --stderr-matches '^Option --running given with no value\n$'
+
+assrt --running assert \
+    --exit-with 1 --no-stdout --stderr-matches '^No operation specified. Use --running\n$'
 
 # Valid
 
@@ -31,14 +41,25 @@ assrt --succeeds-silently --running \
 # Correctness
 
 ## Exit
-assrt --running 'assert,--running,true,--exit-with,1' --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 1, was 0\n'
-assrt --running 'assert,--running,false,--exit-with,0' --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 0, was 1\n$'
-assrt --running 'assert,--running,false,--succeeds-silently' --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 0, was 1\n$'
+assrt --running 'assert,--running,true,--exit-with,1' \
+    --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 1, was 0\n'
+
+assrt --running 'assert,--running,false,--exit-with,0' \
+    --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 0, was 1\n$'
+
+assrt --running 'assert,--running,false,--succeeds-silently' \
+    --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 0, was 1\n$'
 
 ## Outputs
-assrt --running 'assert,--running,seq\,1,--succeeds-silently' --exit-with 2 --no-stdout --stderr-matches $'ASSERT: Standard output mismatch. Expected text matching \'\^\$\', was:\n1\nASSERT: ===\n'
-assrt --running 'assert,--running,sh\,-c\,seq 1 >&2,--succeeds-silently' --exit-with 2 --no-stdout --stderr-matches $'ASSERT: Standard error mismatch. Expected text matching \'\^\$\', was:\n1\nASSERT: ===\n'
+assrt --running 'assert,--running,seq\,1,--succeeds-silently' \
+    --exit-with 2 --no-stdout --stderr-matches \
+    $'ASSERT: Standard output mismatch. Expected text matching \'\^\$\', was:\n1\nASSERT: ===\n'
+
+assrt --running 'assert,--running,sh\,-c\,seq 1 >&2,--succeeds-silently' \
+    --exit-with 2 --no-stdout --stderr-matches \
+    $'ASSERT: Standard error mismatch. Expected text matching \'\^\$\', was:\n1\nASSERT: ===\n'
 
 # Environment
 export ASSERT_TEST_VAR=42
-assrt --running 'assert,--running,sh\,-c\,printf "$ASSERT_TEST_VAR",--succeeds,--no-stderr,--stdout-matches,42' --succeeds-silently
+assrt --running 'assert,--running,sh\,-c\,printf "$ASSERT_TEST_VAR",--succeeds,--no-stderr,--stdout-matches,42' \
+    --succeeds-silently

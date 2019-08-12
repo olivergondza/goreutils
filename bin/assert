@@ -2,7 +2,6 @@
 
 # TODO
 # - Output match trailing newline
-# - Handle ',' in --running
 # - Exit code ranges
 # - Output verification by command
 # - Providing standard input
