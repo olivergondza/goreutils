@@ -1,12 +1,17 @@
 #!/bin/awk -f
 
 # TODO
-# - Restructure asserts
+# - Indent assertions
+# - Repeatable same checks
+# - --running-shell instead of commands
+#   - or running executable file?
+# - Output equals and equals file
+# - Report --running is missing on commandline
 # - Output (colored) diffing
 # - Output match trailing newline
 # - Exit code ranges
 # - Output verification by command
-# - Providing standard input
+# - Providing standard input to command
 
 # Populate config argument with tool configuration
 function init_opts(config, argc, argv) {
@@ -20,6 +25,7 @@ function init_opts(config, argc, argv) {
       break;
       case "--succeeds":
         config[CNF_EXIT] = 0
+        config[CNF_STDERR] = REGEX_EMPTY
       break;
       case "--succeeds-silently":
         config[CNF_EXIT] = 0
@@ -77,7 +83,9 @@ function prepare_exec(command_specifier, exec_array) {
   COMMA_SUBSTITUTE="string_never_to_be_found_in_real_input_to_be_used_to_temporarily_hide_quoted_commas_before_splitting"
   gsub(/\\,/, COMMA_SUBSTITUTE, command_specifier)
   split(command_specifier, chunks, ",")
-  command = "exec"
+  # Explicitly use empty stdin not to inherit the one from assert itself
+  # Otherwise input reading command will halt the execution
+  command = ": | exec"
   show_command = ""
   for(ii = 1; ii <= length(chunks); ii++) {
     arg = chunks[ii]

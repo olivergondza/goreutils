@@ -27,16 +27,17 @@ assrt --running assert,--running \
 assrt --running assert \
     --exit-with 1 --no-stdout --stderr-matches '^No operation specified. Use --running\n$'
 
+assrt --running assert,--foo,--message \
+    --exit-with 1 --no-stdout --stderr-matches '^Unknown option --foo given\nOption --message given with no value\n$'
+
 # Valid
 
-assrt --succeeds-silently --running 'assert,--running,true,--succeeds,--no-stderr,--no-stdout'
+assrt --succeeds-silently --running 'assert,--running,true,--succeeds,--no-stdout'
 assrt --succeeds-silently --running 'assert,--running,true,--exit-with,0,--no-stderr,--no-stdout'
 assrt --succeeds-silently --running 'assert,--running,true,--succeeds-silently'
 
 assrt --succeeds-silently --running \
     'assert,--exit-with,0,--stdout-matches,42,--running,ansible\,-a\,awk "BEGIN {print 6*7}"\,localhost'
-assrt --succeeds-silently --running \
-    "assert,--succeeds,--stdout-matches,42,--running,ansible\,-a\,awk 'BEGIN {print 6*7}'\,localhost"
 
 # Correctness
 
@@ -61,5 +62,7 @@ assrt --running 'assert,--running,sh\,-c\,seq 1 >&2,--succeeds-silently' \
 
 # Environment
 export ASSERT_TEST_VAR=42
-assrt --running 'assert,--running,sh\,-c\,printf "$ASSERT_TEST_VAR",--succeeds,--no-stderr,--stdout-matches,42' \
+assrt --running 'assert,--running,sh\,-c\,printf "$ASSERT_TEST_VAR",--succeeds,--stdout-matches,42' \
     --succeeds-silently
+
+assrt --running 'assert,--running,wc\,-l' --succeeds-silently
