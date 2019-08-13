@@ -1,7 +1,7 @@
 #!/bin/awk -f
 
 # TODO
-# - Indent assertions
+# - Indent assertions report
 # - Repeatable same checks
 # - --running-shell instead of commands
 #   - or running executable file?
@@ -12,8 +12,33 @@
 # - Output verification by command
 # - Providing standard input to command
 
+function usage() {
+  print "Usage: assert [OPTIONS]" > "/dev/stderr"
+  print "" > "/dev/stderr"
+  print "Command specification:" > "/dev/stderr"
+  print "    --running EXEC-LIST      Command arguments to run" > "/dev/stderr"
+  print "" > "/dev/stderr"
+  print "Validation:" > "/dev/stderr"
+  print "    --exit-with N            Expected exit code" > "/dev/stderr"
+  print "    --no-stdout              No stdout expected" > "/dev/stderr"
+  print "    --no-stderr              No stderr expected" > "/dev/stderr"
+  print "    --stdout-matches REGEX   Expected stdout" > "/dev/stderr"
+  print "    --stderr-matches REGEX   Expected stderr" > "/dev/stderr"
+  print "    --succeeds               Exit with 0 code without stderr" > "/dev/stderr"
+  print "    --succeeds-silently      Exit with 0 code without stderr or stdout" > "/dev/stderr"
+  print "" > "/dev/stderr"
+  print "Other options:" > "/dev/stderr"
+  print "    --message DESCRIPTION    Test description" > "/dev/stderr"
+  exit EXIT_USAGE
+}
+
 # Populate config argument with tool configuration
 function init_opts(config, argc, argv) {
+  if (argc == 1) {
+    print "Verify outcome of command run" > "/dev/stderr"
+    print "" > "/dev/stderr"
+    usage()
+  }
   for (i = 1; i < argc; i++) {
     switch (argv[i]) {
       case "--message":
@@ -49,7 +74,7 @@ function init_opts(config, argc, argv) {
       break
       default:
         print "Unknown option "argv[i]" given" > "/dev/stderr"
-        exit EXIT_USAGE
+        usage()
       break;
     }
   }
@@ -61,14 +86,14 @@ function init_opts(config, argc, argv) {
 
   if (!(CNF_COMMAND in config)) {
     print "No operation specified. Use --running" > "/dev/stderr"
-    exit EXIT_USAGE
+    usage()
   }
 }
 
 function read_opt_value(config, argv, value_index, cnf_name, arg_name) {
   if (length(argv) <= value_index) {
     print "Option "arg_name" given with no value" > "/dev/stderr"
-    exit EXIT_USAGE
+    usage()
   }
   config[cnf_name] = argv[value_index]
 }

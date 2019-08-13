@@ -10,25 +10,25 @@ export PATH="$BIN:$BIN/../test:$PATH"
 
 ## Invalid
 assrt --running assert,--message \
-    --exit-with 1 --no-stdout --stderr-matches '^Option --message given with no value\n$'
+    --exit-with 1 --no-stdout --stderr-matches '^Option --message given with no value\n'
 
 assrt --running assert,--exit-with \
-    --exit-with 1 --no-stdout --stderr-matches '^Option --exit-with given with no value\n$'
+    --exit-with 1 --no-stdout --stderr-matches '^Option --exit-with given with no value\n'
 
 assrt --running assert,--stdout-matches \
-    --exit-with 1 --no-stdout --stderr-matches '^Option --stdout-matches given with no value\n$'
+    --exit-with 1 --no-stdout --stderr-matches '^Option --stdout-matches given with no value\n'
 
 assrt --running assert,--stderr-matches \
-    --exit-with 1 --no-stdout --stderr-matches '^Option --stderr-matches given with no value\n$'
+    --exit-with 1 --no-stdout --stderr-matches '^Option --stderr-matches given with no value\n'
 
 assrt --running assert,--running \
-    --exit-with 1 --no-stdout --stderr-matches '^Option --running given with no value\n$'
+    --exit-with 1 --no-stdout --stderr-matches '^Option --running given with no value\n'
 
-assrt --running assert \
-    --exit-with 1 --no-stdout --stderr-matches '^No operation specified. Use --running\n$'
+assrt --running assert,--message,foo \
+    --exit-with 1 --no-stdout --stderr-matches '^No operation specified. Use --running\n'
 
 assrt --running assert,--foo,--message \
-    --exit-with 1 --no-stdout --stderr-matches '^Unknown option --foo given\n$'
+    --exit-with 1 --no-stdout --stderr-matches '^Unknown option --foo given\n'
 
 # Valid
 
