@@ -1,8 +1,9 @@
 #!/bin/awk -f
 
 # TODO
+# - Restructure asserts
+# - Output (colored) diffing
 # - Output match trailing newline
-# - Handle ',' in --running
 # - Exit code ranges
 # - Output verification by command
 # - Providing standard input
@@ -77,15 +78,18 @@ function prepare_exec(command_specifier, exec_array) {
   gsub(/\\,/, COMMA_SUBSTITUTE, command_specifier)
   split(command_specifier, chunks, ",")
   command = "exec"
+  show_command = ""
   for(ii = 1; ii <= length(chunks); ii++) {
     arg = chunks[ii]
     gsub(COMMA_SUBSTITUTE, ",", arg)
     gsub(/[']/, "'\\''", arg)
     command = command" '"arg"'"
+    show_command = show_command"'"arg"' "
   }
   command = command" > '"exec_array["stdout"]"' 2> '"exec_array["stderr"]"'"
   exec_array["command"] = command
-  # print command
+  gsub(/[ ]$/, "", show_command) # Remove trailing space
+  exec_array["show_command"] = show_command
 }
 
 function new_array(array) {
@@ -105,8 +109,8 @@ BEGIN {
 
   REGEX_EMPTY="^$"
 
-  # We use rand() down the path initializing it now. Second resolution of systime()
-  # is not sufficient to prevent consecutive invocations of assert to clash
+  # We use rand() down the path so initializing it now. Second resolution of systime()
+  # is not sufficient to prevent consecutive invocations of assert to clash on random paths generated
   srand(systime()*PROCINFO["pid"])
   RS="^$" # So we can read whole files easily
 
@@ -121,13 +125,15 @@ BEGIN {
 
   exit_code = system(config_running_exec["command"])
   if (CNF_EXIT in config && exit_code != config[CNF_EXIT]) {
-    assertions["exit"] = ("ASSERT: Exit code mismatch. Expected "config[CNF_EXIT]", was "exit_code)
+    v = ("Exit code mismatch. Expected "config[CNF_EXIT]", was "exit_code)
+    assertions["exit"] = v
   }
 
   if (CNF_STDOUT in config) {
     getline out < (config_running_exec["stdout"])
     if (out !~ config[CNF_STDOUT]) {
-      assertions["stdout"] = ("ASSERT: Standard output mismatch. Expected text matching '"config[CNF_STDOUT]"', was:\n"out"ASSERT: ===")
+      v = ("Expected stdout matching '"config[CNF_STDOUT]"', was:\n    "out)
+      assertions["stdout"] = v
     }
   }
   system("rm -f '"config_running_exec["stdout"]"'")
@@ -135,15 +141,18 @@ BEGIN {
   if (CNF_STDERR in config) {
     getline err < (config_running_exec["stderr"])
     if (err !~ config[CNF_STDERR]) {
-      assertions["stderr"] = ("ASSERT: Standard error mismatch. Expected text matching '"config[CNF_STDERR]"', was:\n"err"ASSERT: ===")
+      v = ("Expected stderr matching '"config[CNF_STDERR]"', was:\n    "err)
+      assertions["stderr"] = v
     }
   }
   system("rm -f '"config_running_exec["stderr"]"'")
 
+  if (length(assertions) == 0) exit EXIT_SUCCESS
+
+  print "ASSERT: Failed running: "config_running_exec["show_command"]  > "/dev/stderr"
   for (key in assertions) {
-    print assertions[key] > "/dev/stderr"
+    print "  - "assertions[key] > "/dev/stderr"
   }
 
-  # Exiting explicitly to prevent AWK to process arguments as input files
-  exit (length(assertions) == 0) ? EXIT_SUCCESS : EXIT_FAILURE
+  exit EXIT_FAILURE
 }

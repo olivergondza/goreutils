@@ -42,22 +42,22 @@ assrt --succeeds-silently --running \
 
 ## Exit
 assrt --running 'assert,--running,true,--exit-with,1' \
-    --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 1, was 0\n'
+    --exit-with 2 --no-stdout --stderr-matches $'^ASSERT: Failed running: \'true\'\n  - Exit code mismatch. Expected 1, was 0\n'
 
 assrt --running 'assert,--running,false,--exit-with,0' \
-    --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 0, was 1\n$'
+    --exit-with 2 --no-stdout --stderr-matches $'^ASSERT: Failed running: \'false\'\n  - Exit code mismatch. Expected 0, was 1\n$'
 
 assrt --running 'assert,--running,false,--succeeds-silently' \
-    --exit-with 2 --no-stdout --stderr-matches '^ASSERT: Exit code mismatch. Expected 0, was 1\n$'
+    --exit-with 2 --no-stdout --stderr-matches $'^ASSERT: Failed running: \'false\'\n  - Exit code mismatch. Expected 0, was 1\n$'
 
 ## Outputs
 assrt --running 'assert,--running,seq\,1,--succeeds-silently' \
     --exit-with 2 --no-stdout --stderr-matches \
-    $'ASSERT: Standard output mismatch. Expected text matching \'\^\$\', was:\n1\nASSERT: ===\n'
+    $'ASSERT: Failed running: \'seq\' \'1\'\n  - Expected stdout matching \'\^\$\', was:\n    1\n'
 
 assrt --running 'assert,--running,sh\,-c\,seq 1 >&2,--succeeds-silently' \
     --exit-with 2 --no-stdout --stderr-matches \
-    $'ASSERT: Standard error mismatch. Expected text matching \'\^\$\', was:\n1\nASSERT: ===\n'
+    $'ASSERT: Failed running: \'sh\' \'-c\' \'seq 1 >&2\'\n  - Expected stderr matching \'\^\$\', was:\n    1\n'
 
 # Environment
 export ASSERT_TEST_VAR=42
