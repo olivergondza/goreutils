@@ -28,7 +28,7 @@ assrt --running assert \
     --exit-with 1 --no-stdout --stderr-matches '^No operation specified. Use --running\n$'
 
 assrt --running assert,--foo,--message \
-    --exit-with 1 --no-stdout --stderr-matches '^Unknown option --foo given\nOption --message given with no value\n$'
+    --exit-with 1 --no-stdout --stderr-matches '^Unknown option --foo given\n$'
 
 # Valid
 

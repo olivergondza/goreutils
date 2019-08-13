@@ -6,7 +6,6 @@
 # - --running-shell instead of commands
 #   - or running executable file?
 # - Output equals and equals file
-# - Report --running is missing on commandline
 # - Output (colored) diffing
 # - Output match trailing newline
 # - Exit code ranges
@@ -50,6 +49,7 @@ function init_opts(config, argc, argv) {
       break
       default:
         print "Unknown option "argv[i]" given" > "/dev/stderr"
+        exit EXIT_USAGE
       break;
     }
   }
