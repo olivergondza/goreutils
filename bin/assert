@@ -1,12 +1,10 @@
 #!/bin/awk -f
 
 # TODO
-# - Indent assertions report
+# - Indent equals report
 # - Repeatable same checks
 # - --running-shell instead of commands
 #   - or running executable file?
-# - Output (colored) diffing
-#   - diff --color=always expected actual | sed -e '1d' -e '2,$s/^/    /'
 # - Output match trailing newline
 # - Exit code ranges
 # - Output verification by command
@@ -199,10 +197,10 @@ function verify_stream(label, actual_file, K_MATCHES, K_EQUALS, K_EQUALS_FILE) {
     }
 
     if (K_EQUALS_FILE in config) {
-      expected_out = ""
-      getline expected_out < (config[K_EQUALS_FILE])
-      if (expected_out != actual_out) { # TODO no need to compare in memory
-        push(assertions, "Expected "label": '"expected_out"', was:\n    "actual_out)
+      diff = ""
+      "diff --color=always -U1 '"config[K_EQUALS_FILE]"' '"actual_file"' | sed -e '1,3d' -e '4,$s/^/    /'" | getline diff
+      if (diff != "") {
+        push(assertions, label" mismatch:\n"diff)
       }
     }
 

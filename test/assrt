@@ -7,7 +7,6 @@
 #   - or running executable file?
 # - Output (colored) diffing
 #   - diff --color=always expected actual | sed -e '1d' -e '2,$s/^/    /'
-#   - git diff --no-index expected actual | sed -e '1,5d' -e '6,$s/^/    /'
 # - Output match trailing newline
 # - Exit code ranges
 # - Output verification by command
@@ -178,53 +177,40 @@ BEGIN {
 
   exit_code = system(config_running_exec["command"])
 
-  verify_outcomes(exit_code)
+  verify_outputs(exit_code)
   report_results()
 }
 
-function verify_outcomes(exit_code) {
+function verify_outputs(exit_code) {
   if (CNF_EXIT in config && exit_code != config[CNF_EXIT]) {
     push(assertions, "Exit code mismatch. Expected "config[CNF_EXIT]", was "exit_code)
   }
 
-  if (CNF_STDOUT_MATCHES in config || CNF_STDOUT_EQUALS in config || CNF_STDOUT_EQUALS_FILE in config) {
-    getline actual_out < (config_running_exec["stdout"])
-    if (CNF_STDOUT_EQUALS in config && actual_out != config[CNF_STDOUT_EQUALS]) {
-      push(assertions, "Expected stdout: '"config[CNF_STDOUT_EQUALS]"', was:\n    "actual_out)
+  verify_stream("stdout", config_running_exec["stdout"], CNF_STDOUT_MATCHES, CNF_STDOUT_EQUALS, CNF_STDOUT_EQUALS_FILE)
+  verify_stream("stderr", config_running_exec["stderr"], CNF_STDERR_MATCHES, CNF_STDERR_EQUALS, CNF_STDERR_EQUALS_FILE)
+}
+
+function verify_stream(label, actual_file, K_MATCHES, K_EQUALS, K_EQUALS_FILE) {
+  if (K_MATCHES in config || K_EQUALS in config || K_EQUALS_FILE in config) {
+    actual_out = ""
+    getline actual_out < (actual_file)
+    if (K_EQUALS in config && actual_out != config[K_EQUALS]) {
+      push(assertions, "Expected "label": '"config[K_EQUALS]"', was:\n    "actual_out)
     }
 
-    if (CNF_STDOUT_EQUALS_FILE in config) {
-      getline expected_out < (config[CNF_STDOUT_EQUALS_FILE])
-      if (expected_out != actual_out) { # TODO no need to compare in memory
-        push(assertions, "Expected stdout: '"expected_out"', was:\n    "actual_out)
+    if (K_EQUALS_FILE in config) {
+      diff = ""
+      "diff --color=always '"config[K_EQUALS_FILE]"' '"actual_file"' | sed -e '1d' -e '2,$s/^/    /'" | getline diff
+      if (diff != "") {
+        push(assertions, label" mismatch:\n"diff)
       }
     }
 
-    if (CNF_STDOUT_MATCHES in config && actual_out !~ config[CNF_STDOUT_MATCHES]) {
-      push(assertions, "Expected stdout matching '"config[CNF_STDOUT_MATCHES]"', was:\n    "actual_out)
+    if (K_MATCHES in config && actual_out !~ config[K_MATCHES]) {
+      push(assertions, "Expected "label" matching '"config[K_MATCHES]"', was:\n    "actual_out)
     }
   }
-  system("rm -f '"config_running_exec["stdout"]"'")
-
-  if (CNF_STDERR_MATCHES in config || CNF_STDERR_EQUALS in config || CNF_STDOUT_EQUALS_FILE in config) {
-    getline actual_err < (config_running_exec["stderr"])
-
-    if (CNF_STDERR_EQUALS in config && actual_err != config[CNF_STDERR_EQUALS]) {
-      push(assertions, "Expected stderr: '"config[CNF_STDERR_EQUALS]"', was:\n    "actual_err)
-    }
-
-    if (CNF_STDERR_EQUALS_FILE in config) {
-      getline expected_err < (config[CNF_STDERR_EQUALS_FILE])
-      if (expected_err != actual_err) { # TODO no need to compare in memory
-        push(assertions, "Expected stderr: '"expected_err"', was:\n    "actual_err)
-      }
-    }
-
-    if (CNF_STDERR_MATCHES in config && actual_err !~ config[CNF_STDERR_MATCHES]) {
-      push(assertions, "Expected stderr matching '"config[CNF_STDERR_MATCHES]"', was:\n    "actual_err)
-    }
-  }
-  system("rm -f '"config_running_exec["stderr"]"'")
+  system("rm -f '"actual_file"'")
 }
 
 function push(array, element) {

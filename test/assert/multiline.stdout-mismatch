@@ -1,0 +1,7 @@
+ASSERT: Failed running: 'sed' 's/standard/STANDARD/' '/home/ogondza/code/goreutils/bin/../test/assert/multiline'
+  - stdout mismatch:
+     Lorem Ipsum is simply dummy text of the printing and typesetting
+    [31m-industry. Lorem Ipsum has been the industry's standard dummy text[0m
+    [32m+industry. Lorem Ipsum has been the industry's STANDARD dummy text[0m
+     ever since the 1500s, when an unknown printer took a galley of type
+
