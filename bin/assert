@@ -51,12 +51,12 @@ function init_opts(config, argc, argv) {
       break;
       case "--succeeds":
         config[CNF_EXIT] = 0
-        config[CNF_STDERR_MATCHES] = REGEX_EMPTY
+        config[CNF_STDERR_EQUALS] = ""
       break;
       case "--succeeds-silently":
         config[CNF_EXIT] = 0
-        config[CNF_STDOUT_MATCHES] = REGEX_EMPTY
-        config[CNF_STDERR_MATCHES] = REGEX_EMPTY
+        config[CNF_STDOUT_EQUALS] = ""
+        config[CNF_STDERR_EQUALS] = ""
       break;
       case "--stdout-equals":
         read_opt_value(config, argv, ++i, CNF_STDOUT_EQUALS, "--stdout-equals")
@@ -68,7 +68,7 @@ function init_opts(config, argc, argv) {
         read_opt_value(config, argv, ++i, CNF_STDOUT_MATCHES, "--stdout-matches")
       break;
       case "--no-stdout":
-        config[CNF_STDOUT_MATCHES] = REGEX_EMPTY
+        config[CNF_STDOUT_EQUALS] = ""
       break;
       case "--stderr-equals":
         read_opt_value(config, argv, ++i, CNF_STDERR_EQUALS, "--stderr-equals")
@@ -80,7 +80,7 @@ function init_opts(config, argc, argv) {
         read_opt_value(config, argv, ++i, CNF_STDERR_MATCHES, "--stderr-matches")
       break;
       case "--no-stderr":
-        config[CNF_STDERR_MATCHES] = REGEX_EMPTY
+        config[CNF_STDERR_EQUALS] = ""
       break;
       case "--running":
         read_opt_value(config, argv, ++i, CNF_COMMAND, "--running")

@@ -55,11 +55,11 @@ assrt --running 'assert,--running,false,--succeeds-silently' \
 ### no-stdout/no-stderr
 assrt --running 'assert,--running,seq\,1,--succeeds-silently' \
     --exit-with 2 --no-stdout --stderr-matches \
-    $'ASSERT: Failed running: \'seq\' \'1\'\n  - Expected stdout matching \'\^\$\', was:\n    1\n'
+    $'ASSERT: Failed running: \'seq\' \'1\'\n  - Expected stdout: \'\', was:\n    1\n'
 
 assrt --running 'assert,--running,sh\,-c\,seq 1 >&2,--succeeds-silently' \
     --exit-with 2 --no-stdout --stderr-matches \
-    $'ASSERT: Failed running: \'sh\' \'-c\' \'seq 1 >&2\'\n  - Expected stderr matching \'\^\$\', was:\n    1\n'
+    $'ASSERT: Failed running: \'sh\' \'-c\' \'seq 1 >&2\'\n  - Expected stderr: \'\', was:\n    1\n'
 
 ### stdout-equals
 assrt --running 'assert,--running,printf\,foobar,--succeeds,--stdout-equals,foobar' --succeeds-silently
