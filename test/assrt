@@ -1,7 +1,7 @@
 #!/bin/awk -f
 
 # TODO
-# - Indent assertions
+# - Indent assertions report
 # - Repeatable same checks
 # - --running-shell instead of commands
 #   - or running executable file?
@@ -11,9 +11,37 @@
 # - Exit code ranges
 # - Output verification by command
 # - Providing standard input to command
+# - Decide whether go for gawk only or consider compatibility with other impls
+#   - https://en.wikipedia.org/wiki/AWK#Versions_and_implementations
+# - Add suite support
+
+function usage() {
+  print "Usage: assert [OPTIONS]" > "/dev/stderr"
+  print "" > "/dev/stderr"
+  print "Command specification:" > "/dev/stderr"
+  print "    --running EXEC-LIST      Command arguments to run" > "/dev/stderr"
+  print "" > "/dev/stderr"
+  print "Validation:" > "/dev/stderr"
+  print "    --exit-with N            Expected exit code" > "/dev/stderr"
+  print "    --no-stdout              No stdout expected" > "/dev/stderr"
+  print "    --no-stderr              No stderr expected" > "/dev/stderr"
+  print "    --stdout-matches REGEX   Expected stdout" > "/dev/stderr"
+  print "    --stderr-matches REGEX   Expected stderr" > "/dev/stderr"
+  print "    --succeeds               Exit with 0 code without stderr" > "/dev/stderr"
+  print "    --succeeds-silently      Exit with 0 code without stderr or stdout" > "/dev/stderr"
+  print "" > "/dev/stderr"
+  print "Other options:" > "/dev/stderr"
+  print "    --message DESCRIPTION    Test description" > "/dev/stderr"
+  exit EXIT_USAGE
+}
 
 # Populate config argument with tool configuration
 function init_opts(config, argc, argv) {
+  if (argc == 1) {
+    print "Verify outcome of command run" > "/dev/stderr"
+    print "" > "/dev/stderr"
+    usage()
+  }
   for (i = 1; i < argc; i++) {
     switch (argv[i]) {
       case "--message":
@@ -24,24 +52,36 @@ function init_opts(config, argc, argv) {
       break;
       case "--succeeds":
         config[CNF_EXIT] = 0
-        config[CNF_STDERR] = REGEX_EMPTY
+        config[CNF_STDERR_MATCHES] = REGEX_EMPTY
       break;
       case "--succeeds-silently":
         config[CNF_EXIT] = 0
-        config[CNF_STDOUT] = REGEX_EMPTY
-        config[CNF_STDERR] = REGEX_EMPTY
+        config[CNF_STDOUT_MATCHES] = REGEX_EMPTY
+        config[CNF_STDERR_MATCHES] = REGEX_EMPTY
+      break;
+      case "--stdout-equals":
+        read_opt_value(config, argv, ++i, CNF_STDOUT_EQUALS, "--stdout-equals")
+      break;
+      case "--stdout-equals-file":
+        read_opt_value(config, argv, ++i, CNF_STDOUT_EQUALS_FILE, "--stdout-equals-file")
       break;
       case "--stdout-matches":
-        read_opt_value(config, argv, ++i, CNF_STDOUT, "--stdout-matches")
+        read_opt_value(config, argv, ++i, CNF_STDOUT_MATCHES, "--stdout-matches")
       break;
       case "--no-stdout":
-        config[CNF_STDOUT] = REGEX_EMPTY
+        config[CNF_STDOUT_MATCHES] = REGEX_EMPTY
+      break;
+      case "--stderr-equals":
+        read_opt_value(config, argv, ++i, CNF_STDERR_EQUALS, "--stderr-equals")
+      break;
+      case "--stderr-equals-file":
+        read_opt_value(config, argv, ++i, CNF_STDERR_EQUALS_FILE, "--stderr-equals-file")
       break;
       case "--stderr-matches":
-        read_opt_value(config, argv, ++i, CNF_STDERR, "--stderr-matches")
+        read_opt_value(config, argv, ++i, CNF_STDERR_MATCHES, "--stderr-matches")
       break;
       case "--no-stderr":
-        config[CNF_STDERR] = REGEX_EMPTY
+        config[CNF_STDERR_MATCHES] = REGEX_EMPTY
       break;
       case "--running":
         read_opt_value(config, argv, ++i, CNF_COMMAND, "--running")
@@ -49,26 +89,26 @@ function init_opts(config, argc, argv) {
       break
       default:
         print "Unknown option "argv[i]" given" > "/dev/stderr"
-        exit EXIT_USAGE
+        usage()
       break;
     }
   }
 
-  # Print config
+  #Print config
   # for (key in config) {
   #   print key": "config[key]
   # }
 
   if (!(CNF_COMMAND in config)) {
     print "No operation specified. Use --running" > "/dev/stderr"
-    exit EXIT_USAGE
+    usage()
   }
 }
 
 function read_opt_value(config, argv, value_index, cnf_name, arg_name) {
   if (length(argv) <= value_index) {
     print "Option "arg_name" given with no value" > "/dev/stderr"
-    exit EXIT_USAGE
+    usage()
   }
   config[cnf_name] = argv[value_index]
 }
@@ -110,8 +150,12 @@ BEGIN {
   EXIT_FAILURE = 2
 
   CNF_MESSAGE="message"
-  CNF_STDOUT="stdout"
-  CNF_STDERR="stderr"
+  CNF_STDOUT_EQUALS="stdout-equals"
+  CNF_STDOUT_EQUALS_FILE="stdout-equals-file"
+  CNF_STDOUT_MATCHES="stdout-matches"
+  CNF_STDERR_EQUALS="stderr-equals"
+  CNF_STDERR_EQUALS_FILE="stderr-equals-file"
+  CNF_STDERR_MATCHES="stderr-matches"
   CNF_EXIT="exit"
   CNF_COMMAND="command"
 
@@ -132,29 +176,54 @@ BEGIN {
   init_opts(config, ARGC, ARGV)
 
   exit_code = system(config_running_exec["command"])
+
+  verify_outcomes(exit_code)
+  report_results()
+}
+
+function verify_outcomes(exit_code) {
   if (CNF_EXIT in config && exit_code != config[CNF_EXIT]) {
-    v = ("Exit code mismatch. Expected "config[CNF_EXIT]", was "exit_code)
-    assertions["exit"] = v
+    push(assertions, "Exit code mismatch. Expected "config[CNF_EXIT]", was "exit_code)
   }
 
-  if (CNF_STDOUT in config) {
-    getline out < (config_running_exec["stdout"])
-    if (out !~ config[CNF_STDOUT]) {
-      v = ("Expected stdout matching '"config[CNF_STDOUT]"', was:\n    "out)
-      assertions["stdout"] = v
+  if (or(CNF_STDOUT_MATCHES in config, CNF_STDOUT_EQUALS in config, CNF_STDOUT_EQUALS_FILE in config)) {
+    getline actual_out < (config_running_exec["stdout"])
+    if (CNF_STDOUT_EQUALS in config && actual_out != config[CNF_STDOUT_EQUALS]) {
+      push(assertions, "Expected stdout: '"config[CNF_STDOUT_EQUALS]"', was:\n    "actual_out)
+    }
+
+    if (CNF_STDOUT_EQUALS_FILE in config) {
+      getline expected < (config[CNF_STDOUT_EQUALS_FILE])
+      if (expected != actual_out) { # TODO no need to compare in memory
+        push(assertions, "Expected stdout: '"expected"', was:\n    "actual_out)
+      }
+    }
+
+    if (CNF_STDOUT_MATCHES in config && actual_out !~ config[CNF_STDOUT_MATCHES]) {
+      push(assertions, "Expected stdout matching '"config[CNF_STDOUT_MATCHES]"', was:\n    "actual_out)
     }
   }
   system("rm -f '"config_running_exec["stdout"]"'")
 
-  if (CNF_STDERR in config) {
-    getline err < (config_running_exec["stderr"])
-    if (err !~ config[CNF_STDERR]) {
-      v = ("Expected stderr matching '"config[CNF_STDERR]"', was:\n    "err)
-      assertions["stderr"] = v
+  if (CNF_STDERR_MATCHES in config || CNF_STDERR_EQUALS in config || CNF_STDOUT_EQUALS_FILE in config) {
+    getline actual_err < (config_running_exec["stderr"])
+
+    if (CNF_STDERR_EQUALS in config && actual_err != config[CNF_STDERR_EQUALS]) {
+      push(assertions, "Expected stderr: '"config[CNF_STDERR_EQUALS]"', was:\n    "actual_err)
+    }
+
+    if (CNF_STDERR_MATCHES in config && actual_err !~ config[CNF_STDERR_MATCHES]) {
+      push(assertions, "Expected stderr matching '"config[CNF_STDERR_MATCHES]"', was:\n    "actual_err)
     }
   }
   system("rm -f '"config_running_exec["stderr"]"'")
+}
 
+function push(array, element) {
+  array[length(array)+1] = element
+}
+
+function report_results() {
   if (length(assertions) == 0) exit EXIT_SUCCESS
 
   print "ASSERT: Failed running: "config_running_exec["show_command"]  > "/dev/stderr"
