@@ -73,13 +73,13 @@ assrt --running 'assert,--running,sh\,-c\,printf foobar >&2,--no-stdout,--stderr
 
 ### stdout-equals-file
 assrt --running "assert,--running,cat\,$RES/multiline,--succeeds,--stdout-equals-file,$RES/multiline" --succeeds-silently
-assrt --running "assert,--running,cat\,-n\,$RES/multiline,--succeeds,--stdout-equals-file,$RES/multiline" --exit-with 2 --no-stdout \
-    --stderr-matches '3\s+ever'
+assrt --running "assert,--running,cat\,-n\,$RES/multiline,--succeeds,--stdout-equals-file,$RES/multiline" \
+    --exit-with 2 --no-stdout --stderr-matches '3\s+ever'
 
 ### stderr-equals-file
 assrt --running "assert,--running,sh\,-c\,cat $RES/multiline >&2,--exit-with,0,--stderr-equals-file,$RES/multiline" --succeeds-silently
-assrt --running "assert,--running,sh\,-c\,cat -n $RES/multiline >&2,--succeeds,--stderr-equals-file,$RES/multiline" --exit-with 2 --no-stdout \
-    --stderr-matches '3\s+ever'
+assrt --running "assert,--running,sh\,-c\,cat -n $RES/multiline >&2,--exit-with,0,--stderr-equals-file,$RES/multiline" \
+    --exit-with 2 --no-stdout --stderr-matches '3\s+ever'
 
 # Environment
 export ASSERT_TEST_VAR=42

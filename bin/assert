@@ -6,6 +6,7 @@
 # - --running-shell instead of commands
 #   - or running executable file?
 # - Output (colored) diffing
+#   - diff --color=always expected actual | sed -e '1d' -e '2,$s/^/    /'
 # - Output match trailing newline
 # - Exit code ranges
 # - Output verification by command
@@ -185,16 +186,16 @@ function verify_outcomes(exit_code) {
     push(assertions, "Exit code mismatch. Expected "config[CNF_EXIT]", was "exit_code)
   }
 
-  if (or(CNF_STDOUT_MATCHES in config, CNF_STDOUT_EQUALS in config, CNF_STDOUT_EQUALS_FILE in config)) {
+  if (CNF_STDOUT_MATCHES in config || CNF_STDOUT_EQUALS in config || CNF_STDOUT_EQUALS_FILE in config) {
     getline actual_out < (config_running_exec["stdout"])
     if (CNF_STDOUT_EQUALS in config && actual_out != config[CNF_STDOUT_EQUALS]) {
       push(assertions, "Expected stdout: '"config[CNF_STDOUT_EQUALS]"', was:\n    "actual_out)
     }
 
     if (CNF_STDOUT_EQUALS_FILE in config) {
-      getline expected < (config[CNF_STDOUT_EQUALS_FILE])
-      if (expected != actual_out) { # TODO no need to compare in memory
-        push(assertions, "Expected stdout: '"expected"', was:\n    "actual_out)
+      getline expected_out < (config[CNF_STDOUT_EQUALS_FILE])
+      if (expected_out != actual_out) { # TODO no need to compare in memory
+        push(assertions, "Expected stdout: '"expected_out"', was:\n    "actual_out)
       }
     }
 
@@ -204,11 +205,18 @@ function verify_outcomes(exit_code) {
   }
   system("rm -f '"config_running_exec["stdout"]"'")
 
-  if (CNF_STDERR_MATCHES in config || CNF_STDERR_EQUALS in config || CNF_STDOUT_EQUALS_FILE in config) {
+  if (CNF_STDERR_MATCHES in config || CNF_STDERR_EQUALS in config || CNF_STDERR_EQUALS_FILE in config) {
     getline actual_err < (config_running_exec["stderr"])
 
     if (CNF_STDERR_EQUALS in config && actual_err != config[CNF_STDERR_EQUALS]) {
       push(assertions, "Expected stderr: '"config[CNF_STDERR_EQUALS]"', was:\n    "actual_err)
+    }
+
+    if (CNF_STDERR_EQUALS_FILE in config) {
+      getline expected_err < (config[CNF_STDERR_EQUALS_FILE])
+      if (expected_err != actual_err) { # TODO no need to compare in memory
+        push(assertions, "Expected stderr: '"expected_err"', was:\n    "actual_err)
+      }
     }
 
     if (CNF_STDERR_MATCHES in config && actual_err !~ config[CNF_STDERR_MATCHES]) {
