@@ -146,6 +146,10 @@ function new_array(array) {
   split("", array)
 }
 
+function push(array, element) {
+  array[length(array)+1] = element
+}
+
 BEGIN {
   EXIT_SUCCESS = 0
   EXIT_USAGE = 1
@@ -160,8 +164,6 @@ BEGIN {
   CNF_STDERR_MATCHES="stderr-matches"
   CNF_EXIT="exit"
   CNF_COMMAND="command"
-
-  REGEX_EMPTY="^$"
 
   # We use rand() down the path so initializing it now. Second resolution of systime()
   # is not sufficient to prevent consecutive invocations of assert to clash on random paths generated
@@ -202,7 +204,7 @@ function verify_stream(label, actual_file, K_MATCHES, K_EQUALS, K_EQUALS_FILE) {
 
     if (K_EQUALS_FILE in config) {
       diff = ""
-      "diff --color=always -U1 '"config[K_EQUALS_FILE]"' '"actual_file"' | sed -e '1,3d' -e '4,$s/^/    /'" | getline diff
+      diff_command(config[K_EQUALS_FILE], actual_file) | getline diff
       if (diff != "") {
         push(assertions, label" mismatch:\n"diff)
       }
@@ -215,8 +217,8 @@ function verify_stream(label, actual_file, K_MATCHES, K_EQUALS, K_EQUALS_FILE) {
   system("rm -f '"actual_file"'")
 }
 
-function push(array, element) {
-  array[length(array)+1] = element
+function diff_command(expected, actual) {
+  return "diff --color=always -U-1 '"expected"' '"actual"' | sed -e '1,3d' -e '4,$s/^/    /'"
 }
 
 function report_results() {
