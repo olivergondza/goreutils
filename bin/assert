@@ -195,19 +195,19 @@ function verify_outputs(exit_code) {
 }
 
 function verify_stream(label, actual_file, K_MATCHES, K_EQUALS, K_EQUALS_FILE) {
-  if (K_MATCHES in config || K_EQUALS in config || K_EQUALS_FILE in config) {
+  if (K_EQUALS_FILE in config) {
+    diff = ""
+    diff_command(config[K_EQUALS_FILE], actual_file) | getline diff
+    if (diff != "") {
+      push(assertions, label" mismatch:\n"diff)
+    }
+  }
+
+  if (K_MATCHES in config || K_EQUALS in config) {
     actual_out = ""
     getline actual_out < (actual_file)
     if (K_EQUALS in config && actual_out != config[K_EQUALS]) {
       push(assertions, "Expected "label": '"config[K_EQUALS]"', was:\n    "actual_out)
-    }
-
-    if (K_EQUALS_FILE in config) {
-      diff = ""
-      diff_command(config[K_EQUALS_FILE], actual_file) | getline diff
-      if (diff != "") {
-        push(assertions, label" mismatch:\n"diff)
-      }
     }
 
     if (K_MATCHES in config && actual_out !~ config[K_MATCHES]) {
