@@ -1,12 +1,10 @@
 #!/bin/awk -f
 
 # TODO
-# - Indent assertions report
+# - Indent equals report
 # - Repeatable same checks
 # - --running-shell instead of commands
 #   - or running executable file?
-# - Output (colored) diffing
-#   - diff --color=always expected actual | sed -e '1d' -e '2,$s/^/    /'
 # - Output match trailing newline
 # - Exit code ranges
 # - Output verification by command
@@ -23,10 +21,14 @@ function usage() {
   print "" > "/dev/stderr"
   print "Validation:" > "/dev/stderr"
   print "    --exit-with N            Expected exit code" > "/dev/stderr"
-  print "    --no-stdout              No stdout expected" > "/dev/stderr"
-  print "    --no-stderr              No stderr expected" > "/dev/stderr"
-  print "    --stdout-matches REGEX   Expected stdout" > "/dev/stderr"
-  print "    --stderr-matches REGEX   Expected stderr" > "/dev/stderr"
+  print "    --no-out                 No stdout expected" > "/dev/stderr"
+  print "    --no-err                 No stderr expected" > "/dev/stderr"
+  print "    --out-equals S           Stdout equal to string" > "/dev/stderr"
+  print "    --err-equals S           Stderr equal to string" > "/dev/stderr"
+  print "    --out-equals-file F      Stdout equal to file content" > "/dev/stderr"
+  print "    --err-equals-file F      Stderr equal to file content" > "/dev/stderr"
+  print "    --out-matches REGEX      Stdout matches regex" > "/dev/stderr"
+  print "    --err-matches REGEX      Stderr matches regex" > "/dev/stderr"
   print "    --succeeds               Exit with 0 code without stderr" > "/dev/stderr"
   print "    --succeeds-silently      Exit with 0 code without stderr or stdout" > "/dev/stderr"
   print "" > "/dev/stderr"
@@ -59,28 +61,28 @@ function init_opts(config, argc, argv) {
         config[CNF_STDOUT_EQUALS] = ""
         config[CNF_STDERR_EQUALS] = ""
       break;
-      case "--stdout-equals":
-        read_opt_value(config, argv, ++i, CNF_STDOUT_EQUALS, "--stdout-equals")
+      case "--out-equals":
+        read_opt_value(config, argv, ++i, CNF_STDOUT_EQUALS, "--out-equals")
       break;
-      case "--stdout-equals-file":
-        read_opt_value(config, argv, ++i, CNF_STDOUT_EQUALS_FILE, "--stdout-equals-file")
+      case "--out-equals-file":
+        read_opt_value(config, argv, ++i, CNF_STDOUT_EQUALS_FILE, "--out-equals-file")
       break;
-      case "--stdout-matches":
-        read_opt_value(config, argv, ++i, CNF_STDOUT_MATCHES, "--stdout-matches")
+      case "--out-matches":
+        read_opt_value(config, argv, ++i, CNF_STDOUT_MATCHES, "--out-matches")
       break;
-      case "--no-stdout":
+      case "--no-out":
         config[CNF_STDOUT_EQUALS] = ""
       break;
-      case "--stderr-equals":
-        read_opt_value(config, argv, ++i, CNF_STDERR_EQUALS, "--stderr-equals")
+      case "--err-equals":
+        read_opt_value(config, argv, ++i, CNF_STDERR_EQUALS, "--err-equals")
       break;
-      case "--stderr-equals-file":
-        read_opt_value(config, argv, ++i, CNF_STDERR_EQUALS_FILE, "--stderr-equals-file")
+      case "--err-equals-file":
+        read_opt_value(config, argv, ++i, CNF_STDERR_EQUALS_FILE, "--err-equals-file")
       break;
-      case "--stderr-matches":
-        read_opt_value(config, argv, ++i, CNF_STDERR_MATCHES, "--stderr-matches")
+      case "--err-matches":
+        read_opt_value(config, argv, ++i, CNF_STDERR_MATCHES, "--err-matches")
       break;
-      case "--no-stderr":
+      case "--no-err":
         config[CNF_STDERR_EQUALS] = ""
       break;
       case "--running":
@@ -200,7 +202,7 @@ function verify_stream(label, actual_file, K_MATCHES, K_EQUALS, K_EQUALS_FILE) {
 
     if (K_EQUALS_FILE in config) {
       diff = ""
-      "diff --color=always '"config[K_EQUALS_FILE]"' '"actual_file"' | sed -e '1d' -e '2,$s/^/    /'" | getline diff
+      "diff --color=always -U1 '"config[K_EQUALS_FILE]"' '"actual_file"' | sed -e '1,3d' -e '4,$s/^/    /'" | getline diff
       if (diff != "") {
         push(assertions, label" mismatch:\n"diff)
       }
