@@ -1,0 +1,7 @@
+ASSERT: Failed running: 'sh' '-c' 'printf foobar >&2'
+  - stderr mismatch (-expected, +actual):
+    [31m-foobaz[0m
+    \ No newline at end of file
+    [32m+foobar[0m
+    \ No newline at end of file
+

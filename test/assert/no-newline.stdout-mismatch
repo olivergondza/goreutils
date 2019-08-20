@@ -1,0 +1,7 @@
+ASSERT: Failed running: 'printf' 'foo'
+  - stdout mismatch (-expected, +actual):
+    [31m-bar[0m
+    \ No newline at end of file
+    [32m+foo[0m
+    \ No newline at end of file
+

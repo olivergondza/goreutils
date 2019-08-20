@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# https://disconnected.systems/blog/another-bash-strict-mode/
-set -uo pipefail
-trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 # assrt is a tool for test, assert is a system under test
 export PATH="$BIN:$BIN/../test:$PATH"
@@ -38,7 +35,7 @@ assrt --succeeds-silently --running 'assert,--running,true,--exit-with,0,--no-er
 assrt --succeeds-silently --running 'assert,--running,true,--succeeds-silently'
 
 assrt --succeeds-silently --running \
-    'assert,--exit-with,0,--out-matches,42,--running,ansible\,-a\,awk "BEGIN {print 6*7}"\,localhost'
+    'assert,--exit-with,0,--out-matches,42,--running,awk\,BEGIN {print 6*7}'
 
 # Correctness
 
@@ -55,21 +52,21 @@ assrt --running 'assert,--running,false,--succeeds-silently' \
 ### no-stdout/no-stderr
 assrt --running 'assert,--running,seq\,1,--succeeds-silently' \
     --exit-with 2 --no-out --err-matches \
-    $'ASSERT: Failed running: \'seq\' \'1\'\n  - Expected stdout: \'\', was:\n    1\n'
+    $'ASSERT: Failed running: \'seq\' \'1\'\n  - Empty stdout expected, was:\n    1\n'
 
 assrt --running 'assert,--running,sh\,-c\,seq 1 >&2,--succeeds-silently' \
     --exit-with 2 --no-out --err-matches \
-    $'ASSERT: Failed running: \'sh\' \'-c\' \'seq 1 >&2\'\n  - Expected stderr: \'\', was:\n    1\n'
+    $'ASSERT: Failed running: \'sh\' \'-c\' \'seq 1 >&2\'\n  - Empty stderr expected, was:\n    1\n'
 
 ### stdout-equals
 assrt --running 'assert,--running,printf\,foobar,--succeeds,--out-equals,foobar' --succeeds-silently
-assrt --running 'assert,--running,printf\,foo,--succeeds,--out-equals,bar' --exit-with 2 --no-out --err-matches \
-    $'ASSERT: Failed running: \'printf\' \'foo\'\n  - Expected stdout: \'bar\', was:\n    foo'
+assrt --running $'assert,--running,printf\,foo,--succeeds,--out-equals,bar' \
+    --exit-with 2 --no-out --err-equals-file "$RES/no-newline.stdout-mismatch"
 
 ### stderr-equals
 assrt --running 'assert,--running,sh\,-c\,printf foobar >&2,--no-out,--err-equals,foobar' --succeeds-silently
-assrt --running 'assert,--running,sh\,-c\,printf foobar >&2,--no-out,--err-equals,foobaz' --exit-with 2 --no-out \
-    --err-matches $'ASSERT: Failed running: \'sh\' \'-c\' \'printf foobar >&2\'\n  - Expected stderr: \'foobaz\', was:\n    foobar'
+assrt --running 'assert,--running,sh\,-c\,printf foobar >&2,--no-out,--err-equals,foobaz' \
+    --exit-with 2 --no-out --err-equals-file "$RES/no-newline.stderr-mismatch"
 
 ### stdout-equals-file
 assrt --running "assert,--running,cat\,$RES/multiline,--succeeds,--out-equals-file,$RES/multiline" --succeeds-silently

@@ -12,6 +12,7 @@
 # - Decide whether go for gawk only or consider compatibility with other impls
 #   - https://en.wikipedia.org/wiki/AWK#Versions_and_implementations
 # - Add suite support
+# - Add support for diagnosing command to be run when the test has failed
 
 function usage() {
   print "Usage: assert [OPTIONS]" > "/dev/stderr"
@@ -179,6 +180,7 @@ BEGIN {
 
   init_opts(config, ARGC, ARGV)
 
+#print config_running_exec["command"]
   exit_code = system(config_running_exec["command"])
 
   verify_outputs(exit_code)
@@ -203,13 +205,21 @@ function verify_stream(label, actual_file, K_MATCHES, K_EQUALS, K_EQUALS_FILE) {
     }
   }
 
-  if (K_MATCHES in config || K_EQUALS in config) {
-    actual_out = ""
-    getline actual_out < (actual_file)
-    if (K_EQUALS in config && actual_out != config[K_EQUALS]) {
-      push(assertions, "Expected "label": '"config[K_EQUALS]"', was:\n    "actual_out)
+  if (K_EQUALS in config && config[K_EQUALS] != "") {
+    diff = ""
+    ("echo -n '"config[K_EQUALS]"' | "diff_command("-", actual_file)) | getline diff
+    if (diff != "") {
+      push(assertions, label" mismatch (-expected, +actual):\n"diff)
     }
+  }
 
+  actual_out = ""
+  getline actual_out < (actual_file)
+  if (K_EQUALS in config && config[K_EQUALS] == "" && actual_out != "") {
+    push(assertions, "Empty "label" expected, was:\n"gensub(/^/, "    ", "g", actual_out))
+  }
+
+  if (K_MATCHES in config) {
     if (K_MATCHES in config && actual_out !~ config[K_MATCHES]) {
       push(assertions, "Expected "label" matching '"config[K_MATCHES]"', was:\n    "actual_out)
     }
