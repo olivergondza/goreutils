@@ -1,0 +1,3 @@
+FROM archlinux/base
+
+RUN pacman -Sy; pacman -S --noconfirm awk diffutils

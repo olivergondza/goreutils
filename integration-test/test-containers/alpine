@@ -1,0 +1,4 @@
+FROM alpine
+
+# The only awk natively available for alpine
+RUN apk add bash gawk

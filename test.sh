@@ -8,5 +8,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 export BIN="$DIR"/bin
 for test in ${DIR}/test/*.sh; do
   echo "$test"
+  cd "$DIR"
   "$test"
 done

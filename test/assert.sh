@@ -2,7 +2,7 @@
 
 # assrt is a tool for test, assert is a system under test
 export PATH="$BIN:$BIN/../test:$PATH"
-export RES="$BIN/../test/assert"
+export RES="./test/assert"
 
 # Args
 

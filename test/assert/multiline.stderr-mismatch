@@ -1,8 +1,8 @@
-ASSERT: Failed running: 'sh' '-c' 'sed s/standard/STANDARD/ /home/ogondza/code/goreutils/bin/../test/assert/multiline >&2'
+ASSERT: Failed running: 'sh' '-c' 'sed s/standard/STANDARD/ ./test/assert/multiline >&2'
   - stderr mismatch:
      Lorem Ipsum is simply dummy text of the printing and typesetting
-    [31m-industry. Lorem Ipsum has been the industry's standard dummy text[0m
-    [32m+industry. Lorem Ipsum has been the industry's STANDARD dummy text[0m
+    -industry. Lorem Ipsum has been the industry's standard dummy text
+    +industry. Lorem Ipsum has been the industry's STANDARD dummy text
      ever since the 1500s, when an unknown printer took a galley of type
                           and scrambled it to make a type specimen book.
 
