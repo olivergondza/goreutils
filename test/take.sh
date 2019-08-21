@@ -40,7 +40,7 @@ assrt --running take,3,0,--,foo,bar,bax --succeeds --out-matches '^foo\nbar\nbax
 # Take stdin lines
 
 # TODO better way to provide stdin
-print_stdin='sh,-c,echo -e "foo\nbar\nbax"'
+print_stdin='bash,-c,echo -e "foo\nbar\nbax"'
 assrt --running "$print_stdin | take 1 0" --succeeds --out-matches "^foo\n$"
 assrt --running "$print_stdin | take 1 1" --succeeds --out-matches "^bar\n$"
 assrt --running "$print_stdin | take 1 2" --succeeds --out-matches "^bax\n$"

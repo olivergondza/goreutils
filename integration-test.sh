@@ -11,8 +11,8 @@ targets=(
   "centos"
   "fedora"
   "opensuse"
-  #"debian" MAWK
-  #"ubuntu" MAWK
+  "debian" #No out of the box support: gawk required
+  "ubuntu" #No out of the box support: gawk required
 )
 
 function run_test() {
