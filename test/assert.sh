@@ -78,6 +78,13 @@ assrt --running "assert,--running,sh\,-c\,cat $RES/multiline >&2,--exit-with,0,-
 assrt --running "assert,--running,sh\,-c\,sed s/standard/STANDARD/ $RES/multiline >&2,--exit-with,0,--err-equals-file,$RES/multiline" \
     --exit-with 2 --no-out --err-equals-file $RES/multiline.stderr-mismatch
 
+# Passing input with special chars as input it a major pain. All that assert expects
+# is having `,` escaped (doubly here) but with shell escaping rules and trailing
+# newline trimming it is better avoided using --(out|err)--equals-file
+escape_execlist_delimiter=$'s/\\,/\\\\,/'
+assrt --running "assert,--running,cat\,$RES/full-ascii,--out-equals,$(sed "$escape_execlist_delimiter" "$RES/full-ascii")"$'\n' --succeeds-silently
+assrt --running "assert,--running,cat\,$RES/full-ascii,--out-equals-file,$RES/full-ascii" --succeeds-silently
+
 # Environment
 export ASSERT_TEST_VAR=42
 assrt --running 'assert,--running,sh\,-c\,printf "$ASSERT_TEST_VAR",--succeeds,--out-matches,42' \

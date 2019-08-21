@@ -1,7 +1,6 @@
 #!/bin/awk -f
 
 # TODO
-# - Indent equals report
 # - Repeatable same checks
 # - --running-shell instead of commands
 #   - or running executable file?
@@ -198,18 +197,23 @@ function verify_outputs(exit_code) {
 
 function verify_stream(label, actual_file, K_MATCHES, K_EQUALS, K_EQUALS_FILE) {
   if (K_EQUALS_FILE in config) {
-    diff = ""
-    diff_command(config[K_EQUALS_FILE], actual_file) | getline diff
-    if (diff != "") {
-      push(assertions, label" mismatch:\n"diff)
+    file_diff = ""
+    diff_command(config[K_EQUALS_FILE], actual_file) | getline file_diff
+    if (file_diff != "") {
+      push(assertions, label" mismatch:\n"file_diff)
     }
   }
 
   if (K_EQUALS in config && config[K_EQUALS] != "") {
-    diff = ""
-    ("echo -n '"config[K_EQUALS]"' | "diff_command("-", actual_file)) | getline diff
-    if (diff != "") {
-      push(assertions, label" mismatch (-expected, +actual):\n"diff)
+    new_diff_file="/tmp/assert-equals-"(1000000*rand())
+    printf "%s",config[K_EQUALS] > new_diff_file
+    close(new_diff_file) # Enforce writing the content even when not ending with newline
+
+    literal_diff = ""
+    diff_command(new_diff_file, actual_file) | getline literal_diff
+    system("rm -f '"new_diff_file"'")
+    if (literal_diff != "") {
+      push(assertions, label" mismatch (-expected, +actual):\n"literal_diff)
     }
   }
 
