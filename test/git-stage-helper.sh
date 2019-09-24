@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# https://disconnected.systems/blog/another-bash-strict-mode/
+set -uo pipefail
+trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+# assrt is a tool for test, assert is a system under test
+export PATH="$BIN:$BIN/../test:$PATH"
+
+function _test() {
+    export gdir="$(mktemp -d /tmp/git-stage-helper-XXXXXXXX)"
+    assrt --succeeds --no-err --running git,init,${gdir}
+    cd "${gdir}"
+
+    if ! "$1"; then # Run test method
+      echo "FAILed $1; state kept in $gdir"
+    else
+      rm -rf $gdir
+    fi
+
+    cd - > /dev/null
+}
+
+function empty() {
+    # No files and no commit
+    assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "nothing to commit"
+
+    # No new files
+    echo "__foo__" > file.txt
+    git add file.txt
+    assrt --running git,commit,-m,init --succeeds --no-err
+    assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "nothing to commit"
+}
+_test "empty"
+
+function new_file() {
+    # Given
+    echo "__foo__" > file.txt
+
+    # When
+    (echo 'd'; echo 'q') | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "Next file.txt.*__foo__"
+    # Then
+    assrt --running "git,status,--short,--porcelain" --out-matches "?? file.txt"
+
+    # When
+    echo 'a' | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "Next file.txt"
+    # Then
+    assrt --running "git,status,--short,--porcelain" --out-matches "A  file.txt"
+}
+_test "new_file"
