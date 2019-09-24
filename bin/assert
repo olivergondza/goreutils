@@ -5,23 +5,25 @@
 # - --running-shell instead of commands
 #   - or running executable file?
 # - Output match trailing newline
-# - Exit code ranges
 # - Output verification by command
 # - Providing standard input to command
 # - Decide whether go for gawk only or consider compatibility with other impls
 #   - https://en.wikipedia.org/wiki/AWK#Versions_and_implementations
-#   - shebang broken on mawk (debian/ubuntu)
+#   - shebang broken on mawk (debian/ubuntu default impl, gawk easily available)
 # - Add suite support
 #   - Run whole executable / fail first assert
 #   - Group asserts by test name
 # - Add support for diagnosing command to be run when the test has failed
-# - Rethink bringing colorized diffs back
+# - Rethink how to bring colorized diffs back
+#   - busybox have no '--color' for diff, so does old coreutils impl (centos)
+#     - Fallback will break tests expecting colors
 
 function usage() {
   print "Usage: assert [OPTIONS]" > "/dev/stderr"
   print "" > "/dev/stderr"
   print "Command specification:" > "/dev/stderr"
   print "    --running EXEC-LIST      Command arguments to run" > "/dev/stderr"
+  print "    --forward-in             Forward stdin from assert invocation into --running command" > "/dev/stderr"
   print "" > "/dev/stderr"
   print "Validation:" > "/dev/stderr"
   print "    --exit-with N            Expected exit code" > "/dev/stderr"
@@ -48,6 +50,11 @@ function init_opts(config, argc, argv) {
     print "" > "/dev/stderr"
     usage()
   }
+
+  # Explicitly use empty stdin not to inherit the one from assert itself
+  # Otherwise input reading command will halt the execution leaving no clue what is wrong
+  config[CNF_FORWARD_IN] = ": | "
+
   for (i = 1; i < argc; i++) {
     switch (argv[i]) {
       case "--message":
@@ -92,7 +99,11 @@ function init_opts(config, argc, argv) {
       case "--running":
         read_opt_value(config, argv, ++i, CNF_COMMAND, "--running")
         prepare_exec(config[CNF_COMMAND], config_running_exec)
-      break
+      break;
+      case "--forward-in":
+        # Override the default to do nothing
+        config[CNF_FORWARD_IN] = ""
+      break;
       default:
         print "Unknown option "argv[i]" given" > "/dev/stderr"
         usage()
@@ -129,9 +140,8 @@ function prepare_exec(command_specifier, exec_array) {
   COMMA_SUBSTITUTE="string_never_to_be_found_in_real_input_to_be_used_to_temporarily_hide_quoted_commas_before_splitting"
   gsub(/\\,/, COMMA_SUBSTITUTE, command_specifier)
   split(command_specifier, chunks, ",")
-  # Explicitly use empty stdin not to inherit the one from assert itself
-  # Otherwise input reading command will halt the execution
-  command = ": | exec"
+
+  command = "exec"
   show_command = ""
   for(ii = 1; ii <= length(chunks); ii++) {
     arg = chunks[ii]
@@ -168,6 +178,7 @@ BEGIN {
   CNF_STDERR_MATCHES="stderr-matches"
   CNF_EXIT="exit"
   CNF_COMMAND="command"
+  CNF_FORWARD_IN="forward-in"
 
   # We use rand() down the path so initializing it now. Second resolution of systime()
   # is not sufficient to prevent consecutive invocations of assert to clash on random paths generated
@@ -182,6 +193,8 @@ BEGIN {
   new_array(assertions)
 
   init_opts(config, ARGC, ARGV)
+
+  config_running_exec["command"] = config[CNF_FORWARD_IN]""config_running_exec["command"]
 
 #print config_running_exec["command"]
   exit_code = system(config_running_exec["command"])
