@@ -3,6 +3,42 @@
 set -uo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
+
+
+# ' ' = unmodified
+# M   = modified
+# A   = added
+# D   = deleted
+# R   = renamed
+# C   = copied
+# U   = updated but unmerged
+# Index   WorkTree Meaning
+# -------------------------------------------------
+#          [AMD]   not updated
+# M        [ MD]   updated in index
+# A        [ MD]   added to index
+# D                deleted from index
+# R        [ MD]   renamed in index
+# C        [ MD]   copied in index
+# [MARC]           index and work tree matches
+# [ MARC]     M    work tree changed since index
+# [ MARC]     D    deleted in work tree
+# [ D]        R    renamed in work tree
+# [ D]        C    copied in work tree
+# -------------------------------------------------
+# D           D    unmerged, both deleted
+# A           U    unmerged, added by us
+# U           D    unmerged, deleted by them
+# U           A    unmerged, added by them
+# D           U    unmerged, deleted by us
+# A           A    unmerged, both added
+# U           U    unmerged, both modified
+# -------------------------------------------------
+# ?           ?    untracked
+# !           !    ignored
+# -------------------------------------------------
+STATUS_FOR_REVIEW="s/^([ ARM]M|[?][?]|UU) (.* -> )?//p"
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 # Change directory for the script to the repo root so all repo-relative file paths
@@ -41,7 +77,7 @@ show_status=1
 skipped_files=()
 while :; do
   if [ $show_status -eq 1 ]; then
-    git status
+    git -c color.ui=always status | sed 's/^/    /'
   fi
   show_status=1
 
@@ -52,7 +88,7 @@ while :; do
         dirty_files+=("$filename")
       fi
     fi
-  done <<< "$(git status --short --porcelain | sed -nr "s/^([ ARM]M|[?][?]) (.* -> )?//p")"
+  done <<< "$(git status --short --porcelain | sed -nr "$STATUS_FOR_REVIEW")"
 
   if [ ${#dirty_files[@]} -eq 0 ]; then
     echo "Done"
@@ -63,8 +99,9 @@ while :; do
   fi
 
   echo ""
-  echo "Next "${dirty_files[0]}""
-  echo "[d]iff, [w]s diff, [h]ead diff, [r]eview, [a]dd, [p]atch, [c]ommit, [s]kip, [q]uit"
+  echo ": Next "${dirty_files[0]}""
+  echo ": [d]iff, [w]s diff, [h]ead diff, [r]eview"
+  echo ": [a]dd, [p]atch, [m]ergetool, [c]ommit, [s]kip, [q]uit"
 
   if ! read -n1 ans; then
     # When stdin is closed - not interactive invocation
@@ -90,6 +127,9 @@ while :; do
     ;;
     p) # patch
       git add -ip "${dirty_files[0]}"
+    ;;
+    m) # merge
+      git mergetool --no-prompt
     ;;
     c) # commit
       git commit
