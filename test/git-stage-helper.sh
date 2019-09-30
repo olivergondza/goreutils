@@ -11,15 +11,21 @@ export PATH="$BIN:$BIN/../test:$PATH"
 function _test() {
     export gdir="$(mktemp -d /tmp/git-stage-helper-XXXXXXXX)"
     assrt --succeeds --no-err --running git,init,${gdir}
-    cd "${gdir}"
+    pushd "${gdir}" > /dev/null
 
     if ! "$1"; then # Run test method
-      echo "FAILed $1; state kept in $gdir"
+      echo "FAILED $1; state kept in $gdir"
     else
       rm -rf $gdir
     fi
 
-    cd - > /dev/null
+    popd > /dev/null
+}
+
+function enter() {
+    for key in "$@"; do
+        echo "$key"
+    done
 }
 
 function empty() {
@@ -32,20 +38,37 @@ function empty() {
     assrt --running git,commit,-m,init --succeeds --no-err
     assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "nothing to commit"
 }
-_test "empty"
+_test empty
 
 function new_file() {
     # Given
     echo "__foo__" > file.txt
 
     # When
-    (echo 'd'; echo 'q') | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "Next file.txt.*__foo__"
+    enter 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "Next file.txt.*__foo__"
     # Then
     assrt --running "git,status,--short,--porcelain" --out-matches "?? file.txt"
 
     # When
-    echo 'a' | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "Next file.txt"
+    enter 'a' | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "Next file.txt"
     # Then
     assrt --running "git,status,--short,--porcelain" --out-matches "A  file.txt"
 }
-_test "new_file"
+_test new_file
+
+function non_root_work() {
+    # Given
+    git commit -m init --allow-empty > /dev/null
+    mkdir -p dir
+    echo "__root__" > root.txt
+    echo "__deep__" > dir/deep.txt
+
+    # When
+    cd dir
+    enter 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "Next dir/"
+    enter 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "+__deep__"
+    enter 'a' 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "+__root__"
+    git restore --staged deep.txt
+    enter 'a' 'a' | assrt --running "git-stage-helper" --forward-in --succeeds --no-err --out-matches "Done"
+}
+_test non_root_work

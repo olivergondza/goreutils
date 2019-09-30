@@ -5,6 +5,10 @@ trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
+# Change directory for the script to the repo root so all repo-relative file paths
+# identified by git status --short --porcelain get resolved correctly
+cd "$(git rev-parse --show-toplevel)"
+
 function is_skipped() {
   for i in "${skipped_files[@]}"
   do
