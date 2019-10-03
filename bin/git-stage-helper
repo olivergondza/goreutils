@@ -3,8 +3,6 @@
 set -uo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-
-
 # ' ' = unmodified
 # M   = modified
 # A   = added
@@ -39,6 +37,8 @@ trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 # -------------------------------------------------
 STATUS_FOR_REVIEW="s/^([ ARM]M|[?][?]|UU) (.* -> )?//p"
 
+SED_INDENT="s/^/    /"
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 # Change directory for the script to the repo root so all repo-relative file paths
@@ -59,16 +59,16 @@ function execute_diff() {
   reference="$1"
   diff_opts=$2
 
-  git --no-pager diff $diff_opts $reference "${dirty_files[0]}"
+  git --no-pager -c color.ui=always diff $diff_opts $reference "${dirty_files[0]}" | sed "$SED_INDENT"
   # The diff is empty for untracked files so forcing full diff in that case
-  if git status --short --porcelain "${dirty_files[0]}" | grep '^[?][?] '; then
+  if git status --short --porcelain "${dirty_files[0]}" | grep '^[?][?] ' > /dev/null; then
     src_path=/dev/null
     if [ -d "${dirty_files[0]}" ]; then
       src_path=/tmp/gitadd-empty
       rm -rf "$src_path"
       mkdir "$src_path"
     fi
-    git --no-pager diff --no-index $diff_opts -- "$src_path" "${dirty_files[0]}" || true
+    git --no-pager -c color.ui=always diff --no-index $diff_opts -- "$src_path" "${dirty_files[0]}" | sed "$SED_INDENT" || true
   fi
   show_status=0
 }
@@ -77,7 +77,7 @@ show_status=1
 skipped_files=()
 while :; do
   if [ $show_status -eq 1 ]; then
-    git -c color.ui=always status | sed 's/^/    /'
+    git -c color.ui=always status | sed "$SED_INDENT"
   fi
   show_status=1
 
@@ -99,7 +99,7 @@ while :; do
   fi
 
   echo ""
-  echo ": Next "${dirty_files[0]}""
+  echo "Next "${dirty_files[0]}""
   echo ": [d]iff, [w]s diff, [h]ead diff, [r]eview"
   echo ": [a]dd, [p]atch, [m]ergetool, [c]ommit, [s]kip, [q]uit"
 
@@ -120,7 +120,7 @@ while :; do
       execute_diff "HEAD" ""
     ;;
     r) # review
-      git diff --staged
+      git -c color.ui=always diff --staged
     ;;
     a) # add
       git add "${dirty_files[0]}"
