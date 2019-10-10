@@ -30,20 +30,19 @@ assrt --running take,1,1.1  --exit-with 1 --out-matches \
 
 # Take command arguments
 
-assrt --running take,1,0,--,foo,bar,bax --succeeds --out-matches '^foo\n$'
-assrt --running take,1,1,--,foo,bar,bax --succeeds --out-matches '^bar\n$'
-assrt --running take,1,2,--,foo,bar,bax --succeeds --out-matches '^bax\n$'
-assrt --running take,2,0,--,foo,bar,bax --succeeds --out-matches '^foo\nbar\n$'
-assrt --running take,2,1,--,foo,bar,bax --succeeds --out-matches '^bar\nbax\n$'
-assrt --running take,3,0,--,foo,bar,bax --succeeds --out-matches '^foo\nbar\nbax\n$'
+assrt --running take,1,0,--,foo,bar,bax --succeeds --out-equals $'foo\n'
+assrt --running take,1,1,--,foo,bar,bax --succeeds --out-equals $'bar\n'
+assrt --running take,1,2,--,foo,bar,bax --succeeds --out-equals $'bax\n'
+assrt --running take,2,0,--,foo,bar,bax --succeeds --out-equals $'foo\nbar\n'
+assrt --running take,2,1,--,foo,bar,bax --succeeds --out-equals $'bar\nbax\n'
+assrt --running take,3,0,--,foo,bar,bax --succeeds --out-equals $'foo\nbar\nbax\n'
 
 # Take stdin lines
 
-# TODO better way to provide stdin
-print_stdin='bash,-c,echo -e "foo\nbar\nbax"'
-assrt --running "$print_stdin | take 1 0" --succeeds --out-matches "^foo\n$"
-assrt --running "$print_stdin | take 1 1" --succeeds --out-matches "^bar\n$"
-assrt --running "$print_stdin | take 1 2" --succeeds --out-matches "^bax\n$"
-assrt --running "$print_stdin | take 2 0" --succeeds --out-matches "^foo\nbar\n$"
-assrt --running "$print_stdin | take 2 1" --succeeds --out-matches "^bar\nbax\n$"
-assrt --running "$print_stdin | take 3 0" --succeeds --out-matches "^foo\nbar\nbax\n$"
+in=$'foo\nbar\nbax'
+assrt --forward-in --running take,1,0 --succeeds --out-equals $'foo\n' <<< "$in"
+assrt --forward-in --running take,1,1 --succeeds --out-equals $'bar\n' <<< "$in"
+assrt --forward-in --running take,1,2 --succeeds --out-equals $'bax\n' <<< "$in"
+assrt --forward-in --running take,2,0 --succeeds --out-equals $'foo\nbar\n' <<< "$in"
+assrt --forward-in --running take,2,1 --succeeds --out-equals $'bar\nbax\n' <<< "$in"
+assrt --forward-in --running take,3,0 --succeeds --out-equals $'foo\nbar\nbax\n' <<< "$in"
