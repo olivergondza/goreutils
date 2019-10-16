@@ -70,7 +70,7 @@ function non_root_work() {
     enter 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "Next dir/"
     enter 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "__deep__"
     enter 'a' 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "__root__"
-    git restore --staged deep.txt
+    git reset HEAD deep.txt
     enter 'a' 'a' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "Done"
 }
 _test non_root_work
@@ -96,7 +96,7 @@ function merge_file() {
     # When merged
     git merge conflict > /dev/null || true # Expected to fail pointing out merge conflict
 
-    enter 'm' 'q' | assrt --running "git-stage-helper" --forward-in --err-matches "Updated 1 path from" --out-matches "Next file.txt"
-    assrt --running "git,status" --succeeds --out-matches "All conflicts fixed but you are still merging"
+    enter 'd' 'q' | assrt --running "git-stage-helper" --forward-in --out-matches "Next file.txt.*HEAD.*bax.*bar.*conflict"
+    enter 'a' | assert --running "git-stage-helper" --forward-in --out-matches "modified:.*file.txt.*Done"
 }
 _test merge_file
