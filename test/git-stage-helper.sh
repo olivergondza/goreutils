@@ -68,8 +68,8 @@ function non_root_work() {
 
     # Then
     enter 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "Next dir/"
-    enter 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "+__deep__"
-    enter 'a' 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "+__root__"
+    enter 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "__deep__"
+    enter 'a' 'd' 'q' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "__root__"
     git restore --staged deep.txt
     enter 'a' 'a' | assrt --running "git-stage-helper" --forward-in --succeeds --out-matches "Done"
 }
