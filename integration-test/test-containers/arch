@@ -1,3 +1,4 @@
 FROM archlinux/base
 
-RUN pacman -Sy; pacman -S --noconfirm awk diffutils
+RUN pacman -Sy; pacman -S --noconfirm awk diffutils git
+RUN git config --global user.email "goreutils-it@example.com" && git config --global user.name "Goreutils IT"

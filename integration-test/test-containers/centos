@@ -1,1 +1,4 @@
 FROM centos
+
+RUN yum install -y diffutils git
+RUN git config --global user.email "goreutils-it@example.com" && git config --global user.name "Goreutils IT"
